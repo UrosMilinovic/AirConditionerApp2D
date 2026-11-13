@@ -1,0 +1,24 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.vcxproj.user
+
+# Build izlaz
+x64/
+x86/
+Debug/
+Release/
+[Bb]in/
+[Oo]bj/
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.log
+*.tlog
+*.idb
+*.ipch
+
+# NuGet paketi (vracaju se automatski iz packages.config)
+packages/

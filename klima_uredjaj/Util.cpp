@@ -1,0 +1,150 @@
+#include "Util.h"
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+
+#define _CRT_SECURE_NO_WARNINGS
+#include <cstdio>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+// Autor originala: Nedeljko Tesanovic
+// Opis: pomocne funkcije za ucitavanje sejdera, tekstura i kursora
+
+
+unsigned int compileShader(GLenum type, const char* source)
+{
+    std::string content = "";
+    std::ifstream file(source);
+    std::stringstream ss;
+    if (file.is_open())
+    {
+        ss << file.rdbuf();
+        file.close();
+        std::cout << "Uspjesno procitao fajl sa putanje \"" << source << "\"!" << std::endl;
+    }
+    else {
+        ss << "";
+        std::cout << "Greska pri citanju fajla sa putanje \"" << source << "\"!" << std::endl;
+    }
+    std::string temp = ss.str();
+    const char* sourceCode = temp.c_str();
+
+    int shader = glCreateShader(type);
+
+    int success;
+    char infoLog[512];
+    glShaderSource(shader, 1, &sourceCode, NULL);
+    glCompileShader(shader);
+
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (success == GL_FALSE)
+    {
+        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        if (type == GL_VERTEX_SHADER)
+            printf("VERTEX");
+        else if (type == GL_FRAGMENT_SHADER)
+            printf("FRAGMENT");
+        printf(" sejder ima gresku! Greska: \n");
+        printf("%s", infoLog);
+    }
+    return shader;
+}
+
+unsigned int createShader(const char* vsSource, const char* fsSource)
+{
+    unsigned int program;
+    unsigned int vertexShader;
+    unsigned int fragmentShader;
+
+    program = glCreateProgram();
+
+    vertexShader = compileShader(GL_VERTEX_SHADER, vsSource);
+    fragmentShader = compileShader(GL_FRAGMENT_SHADER, fsSource);
+
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+
+    glLinkProgram(program);
+    glValidateProgram(program);
+
+    int success;
+    char infoLog[512];
+    glGetProgramiv(program, GL_VALIDATE_STATUS, &success);
+    if (success == GL_FALSE)
+    {
+        glGetProgramInfoLog(program, 512, NULL, infoLog);
+        std::cout << "Objedinjeni sejder ima gresku! Greska: \n";
+        std::cout << infoLog << std::endl;
+    }
+
+    glDetachShader(program, vertexShader);
+    glDeleteShader(vertexShader);
+    glDetachShader(program, fragmentShader);
+    glDeleteShader(fragmentShader);
+
+    return program;
+}
+
+unsigned loadImageToTexture(const char* filePath) {
+    int TextureWidth;
+    int TextureHeight;
+    int TextureChannels;
+    unsigned char* ImageData = stbi_load(filePath, &TextureWidth, &TextureHeight, &TextureChannels, 0);
+    if (ImageData != NULL)
+    {
+        // Slike se osnovno ucitavaju naopako pa se moraju ispraviti da budu uspravne
+        stbi__vertical_flip(ImageData, TextureWidth, TextureHeight, TextureChannels);
+
+        GLint InternalFormat = -1;
+        switch (TextureChannels) {
+        case 1: InternalFormat = GL_RED; break;
+        case 2: InternalFormat = GL_RG; break;
+        case 3: InternalFormat = GL_RGB; break;
+        case 4: InternalFormat = GL_RGBA; break;
+        default: InternalFormat = GL_RGB; break;
+        }
+
+        unsigned int Texture;
+        glGenTextures(1, &Texture);
+        glBindTexture(GL_TEXTURE_2D, Texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, InternalFormat, TextureWidth, TextureHeight, 0, InternalFormat, GL_UNSIGNED_BYTE, ImageData);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        stbi_image_free(ImageData);
+        return Texture;
+    }
+    else
+    {
+        std::cout << "Textura nije ucitana! Putanja texture: " << filePath << std::endl;
+        stbi_image_free(ImageData);
+        return 0;
+    }
+}
+
+GLFWcursor* loadImageToCursor(const char* filePath, int hotspotX, int hotspotY) {
+    int TextureWidth;
+    int TextureHeight;
+    int TextureChannels;
+
+    // GLFW trazi 4 kanala (RGBA), zato forsiramo 4
+    unsigned char* ImageData = stbi_load(filePath, &TextureWidth, &TextureHeight, &TextureChannels, 4);
+
+    if (ImageData != NULL)
+    {
+        GLFWimage image;
+        image.width = TextureWidth;
+        image.height = TextureHeight;
+        image.pixels = ImageData;
+
+        GLFWcursor* cursor = glfwCreateCursor(&image, hotspotX, hotspotY);
+        stbi_image_free(ImageData);
+        return cursor;
+    }
+    else {
+        std::cout << "Kursor nije ucitan! Putanja kursora: " << filePath << std::endl;
+        return NULL;
+    }
+}

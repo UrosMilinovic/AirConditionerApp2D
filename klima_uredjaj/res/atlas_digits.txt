@@ -1,0 +1,4 @@
+Redosled znakova (levo -> desno): 0123456789-°C
+Velicina celije: 64x96 px, ukupno 13 celija
+UV za znak i: u0 = i/13, u1 = (i+1)/13, v od 0 do 1
+Indeksi: 0-9 = cifre, 10 = '-', 11 = stepen, 12 = 'C'
